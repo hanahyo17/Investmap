@@ -1,0 +1,16 @@
+{
+  "name": "현장조사 노트",
+  "short_name": "현장조사",
+  "description": "shp 점 데이터를 불러와 위치별 사진·메모·그림 메모를 남기고 ZIP으로 내보내는 현장조사 앱",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f2f3ef",
+  "theme_color": "#ffffff",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}
