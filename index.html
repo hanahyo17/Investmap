@@ -31,8 +31,11 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 
 #app{height:100%;display:flex;flex-direction:column;min-height:0}
 .top{display:flex;align-items:center;gap:10px;padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));background:var(--surface);border-bottom:1px solid var(--line)}
-.ttl{flex:1;min-width:0}
-.ttl h1{margin:0;font-size:17px;font-weight:700;letter-spacing:-.01em}
+.ttl{flex:1;min-width:0;cursor:pointer}
+.ttl h1{margin:0;font-size:17px;font-weight:700;letter-spacing:-.01em;display:flex;align-items:baseline;gap:6px;min-width:0}
+#projName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ttl .lab{font-size:11px;color:var(--muted);font-weight:500;flex:none}
+.ttl .chev{color:var(--muted);font-size:13px;flex:none}
 .ttl p{margin:0;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .acts{display:flex;gap:8px}
 .btn{min-height:44px;padding:0 14px;border:1px solid var(--line);background:var(--surface);border-radius:8px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;color:var(--ink)}
@@ -99,6 +102,16 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 textarea#memo{width:100%;min-height:96px;resize:vertical;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:10px 12px;line-height:1.5}
 .saved{font-size:12px;color:var(--muted);min-height:18px;margin-top:4px}
 
+.pjlist{list-style:none;margin:10px 0;padding:0}
+.pjlist li{display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--line)}
+.pjlist li.on{background:var(--accent-soft);border-radius:8px}
+.pjlist .pj{flex:1;min-width:0;text-align:left;border:0;background:transparent;padding:8px 8px;display:grid;gap:2px;min-height:58px}
+.pjlist .pj b{overflow-wrap:anywhere}
+.pjlist .pj small{color:var(--muted)}
+#emptyMap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:2;padding:16px}
+#emptyMap[hidden]{display:none}
+#emptyMap .card{pointer-events:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;max-width:300px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.18)}
+#emptyMap p{margin:6px 0 12px;color:var(--muted);font-size:13.5px}
 #info{position:absolute;left:0;right:0;bottom:0;max-height:44%;overflow:auto;background:var(--surface);border-radius:14px 14px 0 0;box-shadow:0 -4px 18px rgba(0,0,0,.22);padding:10px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px));z-index:5;overscroll-behavior:contain}
 #info .ih{display:flex;align-items:center;justify-content:space-between;gap:8px}
 #info h3{margin:0;font-size:15px}
@@ -161,7 +174,7 @@ textarea#memo{width:100%;min-height:96px;resize:vertical;border:1px solid var(--
 
 <div id="app">
   <header class="top">
-    <div class="ttl"><h1>현장조사 노트</h1><p id="sub"></p></div>
+    <div class="ttl" role="button" tabindex="0" data-act="projects" aria-label="업무 목록 열기"><h1><span class="lab">업무</span><span id="projName">업무</span><span class="chev" aria-hidden="true">▾</span></h1><p id="sub"></p></div>
     <div class="acts">
       <button class="btn sm" data-act="openImport" id="btnImport">조사점 불러오기</button>
       <button class="btn sm pri" data-act="openExport" id="btnExport">내보내기</button>
@@ -180,6 +193,7 @@ textarea#memo{width:100%;min-height:96px;resize:vertical;border:1px solid var(--
         <button data-act="cad" id="btnCad" aria-pressed="false" aria-label="연속지적도 켜기/끄기">지적</button>
         <button data-act="basemap" id="btnBase" aria-label="배경지도 바꾸기">위성</button>
       </div>
+      <div id="emptyMap" hidden><div class="card"><b>이 업무에는 조사점이 없습니다</b><p>조사할 장소가 담긴 점 shp를 불러오세요.</p><button class="btn pri" data-act="openImport">조사점 불러오기</button></div></div>
       <div id="tileNote" hidden>배경지도를 불러오지 못해 점 위치만 표시합니다.</div>
       <div id="cadNote" hidden>지적도를 불러오지 못했습니다. 인증키와 서비스 URL 등록을 확인하세요.<button class="btn sm" data-act="openKey">키 설정</button></div>
     </section>
@@ -324,10 +338,13 @@ async function gatherFiles(fileList){
 const idb=(()=>{
   let p=null;
   const open=()=>p||(p=new Promise((res,rej)=>{try{
-    const r=indexedDB.open('field-note',2);
-    r.onupgradeneeded=()=>{const d=r.result,has=n=>d.objectStoreNames.contains(n);
+    const r=indexedDB.open('field-note',3);
+    r.onupgradeneeded=()=>{const d=r.result,t=r.transaction,has=n=>d.objectStoreNames.contains(n);
       if(!has('kv'))d.createObjectStore('kv');if(!has('rec'))d.createObjectStore('rec',{keyPath:'pid'});
-      if(!has('media'))d.createObjectStore('media',{keyPath:'id'});if(!has('layers'))d.createObjectStore('layers',{keyPath:'id'})};
+      if(!has('media'))d.createObjectStore('media',{keyPath:'id'});if(!has('layers'))d.createObjectStore('layers',{keyPath:'id'});
+      if(!has('proj'))d.createObjectStore('proj',{keyPath:'id'});if(!has('rec2'))d.createObjectStore('rec2',{keyPath:'key'});
+      const m=t.objectStore('media');if(!m.indexNames.contains('proj'))m.createIndex('proj','proj');
+      const r2=t.objectStore('rec2');if(!r2.indexNames.contains('proj'))r2.createIndex('proj','proj')};
     r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);r.onblocked=()=>rej(new Error('blocked'))}catch(e){rej(e)}}));
   const wrap=q=>new Promise((res,rej)=>{q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)});
   const tx=async(s,m,fn)=>{const d=await open();return wrap(fn(d.transaction(s,m).objectStore(s)))};
@@ -336,13 +353,17 @@ const idb=(()=>{
     put:(s,v,k)=>tx(s,'readwrite',o=>k===undefined?o.put(v):o.put(v,k)),
     del:(s,k)=>tx(s,'readwrite',o=>o.delete(k)),
     all:s=>tx(s,'readonly',o=>o.getAll()),
-    clear:s=>tx(s,'readwrite',o=>o.clear())}})();
+    clear:s=>tx(s,'readwrite',o=>o.clear()),
+    allBy:(s,ix,k)=>tx(s,'readonly',o=>o.index(ix).getAll(IDBKeyRange.only(k))),
+    countBy:(s,ix,k)=>tx(s,'readonly',o=>o.index(ix).count(IDBKeyRange.only(k))),
+    delBy:async(s,ix,k)=>{const d=await open();return new Promise((res,rej)=>{const t=d.transaction(s,'readwrite'),q=t.objectStore(s).index(ix).openCursor(IDBKeyRange.only(k));
+      q.onsuccess=()=>{const c=q.result;if(c){c.delete();c.continue()}};t.oncomplete=()=>res();t.onerror=()=>rej(t.error)})}}})();
 async function persist(fn){
   if(S.volatile)return;
   try{await fn()}catch(e){S.volatile=true;$('#vol').hidden=false;toast('저장 공간을 쓸 수 없습니다. 지금 ZIP으로 내보내 주세요',4200)}}
 
 /* ================= 상태 ================= */
-const S={layer:null,recs:new Map(),media:new Map(),urls:new Map(),sel:null,tab:'map',loc:null,watch:0,base:'osm',volatile:false,q:'',vkey:'',cad:false,layers:[],pick:null};
+const S={layer:null,recs:new Map(),media:new Map(),urls:new Map(),sel:null,tab:'map',loc:null,watch:0,base:'osm',volatile:false,q:'',vkey:'',cad:false,layers:[],pick:null,projs:[],cur:null};
 function prep(layer){layer.features.forEach(f=>{f.wx=(f.lng+180)/360;const s=Math.sin(f.lat*Math.PI/180);f.wy=0.5-Math.log((1+s)/(1-s))/(4*Math.PI)});return layer}
 function featureOf(i){return S.layer&&S.layer.features.find(f=>f.i===i)}
 const mediaOf=(pid,kind)=>(S.media.get(pid)||[]).filter(m=>!kind||m.kind===kind).sort((a,b)=>a.ts-b.ts);
@@ -489,8 +510,8 @@ function stats(){
   const L=S.layer;if(!L)return {n:0,done:0};
   let done=0;L.features.forEach(f=>{if(hasData(f.i))done++});return {n:L.features.length,done}}
 function renderHeader(){
-  const L=S.layer,st=stats();
-  $('#sub').innerHTML=L?`${L.sample?'<span class="badge">예시</span> ':''}${esc(L.name)} · ${st.n}곳 · 기록 ${st.done}곳`:'shp를 불러오세요'}
+  const L=S.layer,st=stats(),pm=curMeta();$('#projName').textContent=pm?pm.name:'업무';$('#emptyMap').hidden=!!L;
+  $('#sub').innerHTML=L?`${L.sample?'<span class="badge">예시</span> ':''}${esc(L.name)} · ${st.n}곳 · 기록 ${st.done}곳`:'조사점을 불러오세요'}
 function fmtDist(m){return m<1000?Math.round(m)+'m':(m/1000).toFixed(1)+'km'}
 function hav(a,b,c,d){const r=Math.PI/180,x=(c-a)*r,y=(d-b)*r,h=Math.sin(x/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin(y/2)**2;return 12742000*Math.asin(Math.sqrt(h))}
 function renderList(){
@@ -553,9 +574,9 @@ function deselect(){saveMemoNow();S.sel=null;$('#sheet').hidden=true;hideInfo();
 let memoT=0;
 function saveMemoNow(){
   clearTimeout(memoT);const i=S.sel,ta=$('#memo');if(i==null||!ta)return;
-  const r={pid:i,memo:ta.value,updated:Date.now()};
+  const r={key:S.cur+':'+i,proj:S.cur,pid:i,memo:ta.value,updated:Date.now()};
   if(!ta.value.trim()&&!S.recs.has(i))return;
-  S.recs.set(i,r);persist(()=>idb.put('rec',r));
+  S.recs.set(i,r);persist(()=>idb.put('rec2',r));touchProj();
   const t=new Date();$('#memoSaved').textContent=`저장됨 ${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`;
   renderHeader();renderList();requestDraw()}
 document.addEventListener('input',e=>{if(e.target.id==='memo'){clearTimeout(memoT);$('#memoSaved').textContent='입력 중…';memoT=setTimeout(saveMemoNow,500)}
@@ -569,9 +590,9 @@ async function shrink(file,max=2048,q=.85){
   if(bmp.close)bmp.close();
   return new Promise(res=>c.toBlob(b=>res(b||file),'image/jpeg',q))}
 async function addMedia(pid,kind,blob){
-  const m={id:uid(),pid,kind,blob,ts:Date.now()};
+  const m={id:uid(),pid,kind,blob,ts:Date.now(),proj:S.cur};
   if(!S.media.has(pid))S.media.set(pid,[]);S.media.get(pid).push(m);
-  await persist(()=>idb.put('media',m));
+  await persist(()=>idb.put('media',m));touchProj();
   if(S.sel===pid)renderMedia();refreshAll();return m}
 async function addPhotos(files,pid){
   let ok=0;
@@ -695,14 +716,16 @@ function renderImp(){
 async function wipeAll(){
   S.media.forEach(arr=>arr.forEach(m=>{const u=S.urls.get(m.id);if(u)URL.revokeObjectURL(u)}));
   S.urls.clear();S.media.clear();S.recs.clear();S.sel=null;$('#sheet').hidden=true;
-  await persist(async()=>{await idb.clear('rec');await idb.clear('media')})}
+  const pj=S.cur;await persist(async()=>{await idb.delBy('rec2','proj',pj);await idb.delBy('media','proj',pj)});touchProj()}
 async function impGo(btn){
   const I=IMP;if(!I)return;const feats=buildFeatures(I);if(!feats.length){toast('불러올 점이 없습니다');return}
   const anyData=S.recs.size>0||S.media.size>0;
   if(anyData&&!(S.layer&&S.layer.sample)&&!I.confirmWipe){I.confirmWipe=true;btn.textContent='기존 기록을 지우고 불러오기 (한 번 더)';return}
   await wipeAll();
   S.layer=prep({name:I.g.name,sample:false,epsg:I.epsg,nameField:I.nameF,addrField:I.addrF,fields:I.dbf.fields,loadedAt:Date.now(),features:feats});
-  await persist(()=>idb.put('kv',S.layer,'layer'));
+  const pm=curMeta();pm.hasLayer=true;pm.count=feats.length;pm.epsg=I.epsg;pm.sample=false;pm.updated=Date.now();
+  if(/^(예시 업무|새 업무|업무 \d+)$/.test(pm.name))pm.name=I.g.name;
+  await persist(async()=>{await idb.put('kv',S.layer,'layer:'+S.cur);await idb.put('proj',pm)});
   closeModal();refreshAll();setTab('map');fit();toast(`${feats.length.toLocaleString()}곳을 불러왔습니다`)}
 $('#shpIn').addEventListener('change',e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)onShpPicked(fs)});
 
@@ -752,7 +775,7 @@ async function expGo(){
     const blob=await zip.generateAsync({type:'blob',compression:'STORE'},m=>{msg.textContent='압축하는 중… '+Math.round(m.percent)+'%'});
     const d=new Date(),stamp=`${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
     msg.textContent='저장 대화상자를 확인하세요.';
-    await saveBlob(`현장조사_${safeName(L.name)}_${stamp}.zip`,blob);
+    await saveBlob(`현장조사_${safeName((curMeta()||L).name)}_${stamp}.zip`,blob);
     msg.textContent=`${list.length}곳을 ZIP으로 만들었습니다.`;
   }catch(e){msg.textContent=(e&&e.code==='declined')?'저장을 취소했습니다.':'저장하지 못했습니다: '+((e&&e.message)||e)}
   btn.disabled=false}
@@ -910,6 +933,59 @@ function openKey(){
   <div class="row"><button class="btn" data-act="close">닫기</button><button class="btn ok" data-act="keySave">저장하고 켜기</button></div>
   ${S.vkey?'<div class="row"><button class="btn danger" data-act="keyClear">키 삭제</button></div>':''}</div>`)}
 
+/* ================= 업무 (여러 조사 업무 관리) ================= */
+const curMeta=()=>S.projs.find(p=>p.id===S.cur);
+let touchT=0;
+function touchProj(){const m=curMeta();if(!m)return;m.updated=Date.now();clearTimeout(touchT);touchT=setTimeout(()=>persist(()=>idb.put('proj',m)),800)}
+function newProjMeta(name){return {id:uid(),name,created:Date.now(),updated:Date.now(),hasLayer:false,count:0,epsg:5186,sample:false}}
+const fmtDate=t=>{const d=new Date(t||Date.now());return (d.getMonth()+1)+'/'+d.getDate()};
+async function migrateLegacy(){
+  const legacy=await idb.get('kv','layer');if(!legacy)return;
+  if((await idb.all('proj')).length)return;
+  const m=newProjMeta(legacy.sample?'예시 업무':(legacy.name||'업무 1'));m.hasLayer=true;m.count=legacy.features.length;m.epsg=legacy.epsg||5186;m.sample=!!legacy.sample;
+  await idb.put('proj',m);await idb.put('kv',legacy,'layer:'+m.id);
+  for(const r of await idb.all('rec'))await idb.put('rec2',{key:m.id+':'+r.pid,proj:m.id,pid:r.pid,memo:r.memo,updated:r.updated});
+  for(const x of await idb.all('media')){x.proj=m.id;await idb.put('media',x)}
+  await idb.put('kv',m.id,'cur');await idb.del('kv','layer');await idb.clear('rec')}
+async function loadProject(id){
+  saveMemoNow();
+  S.media.forEach(a=>a.forEach(m=>{const u=S.urls.get(m.id);if(u)URL.revokeObjectURL(u)}));
+  S.urls.clear();S.media.clear();S.recs.clear();S.sel=null;$('#sheet').hidden=true;hideInfo();S.layer=null;S.cur=id;
+  const meta=curMeta();
+  if(S.volatile)return;
+  try{
+    if(meta&&meta.hasLayer){const l=await idb.get('kv','layer:'+id);if(l)S.layer=prep(l)}
+    (await idb.allBy('rec2','proj',id)).forEach(r=>S.recs.set(r.pid,r));
+    (await idb.allBy('media','proj',id)).forEach(m=>{if(!S.media.has(m.pid))S.media.set(m.pid,[]);S.media.get(m.pid).push(m)});
+    await idb.put('kv',id,'cur')
+  }catch(e){S.volatile=true;$('#vol').hidden=false}}
+function openProjects(){
+  saveMemoNow();
+  openModal(`<div class="dlg"><h2>업무 목록</h2>
+  <p class="muted">업무마다 조사점과 사진·메모·그림이 따로 저장됩니다. 참고 레이어(도로, 지적도 등)는 모든 업무에서 함께 씁니다.</p>
+  <ul class="pjlist" id="pjList"></ul>
+  <button class="btn pri" style="width:100%" data-act="pjNew">새 업무 만들기</button>
+  <div class="row"><button class="btn" data-act="close">닫기</button></div></div>`);
+  renderProjects()}
+async function renderProjects(){
+  const ul=$('#pjList');if(!ul)return;
+  const list=[...S.projs].sort((a,b)=>(b.updated||0)-(a.updated||0));
+  ul.innerHTML=list.map(p=>`<li class="${p.id===S.cur?'on':''}"><button class="pj" data-act="pjOpen" data-id="${p.id}"><span><b>${esc(p.name)}</b> ${p.id===S.cur?'<span class="badge">사용 중</span>':''}</span><small id="pjs-${p.id}">${p.hasLayer?p.count.toLocaleString()+'곳':'조사점 없음'}</small></button><button class="btn sm" data-act="pjRename" data-id="${p.id}">이름</button><button class="btn sm danger" data-act="pjDel" data-id="${p.id}">삭제</button></li>`).join('');
+  for(const p of list){
+    let ph=0,mm=0;
+    try{if(p.id===S.cur){S.media.forEach(a=>ph+=a.length);S.recs.forEach(r=>{if((r.memo||'').trim())mm++})}
+      else if(!S.volatile){ph=await idb.countBy('media','proj',p.id);mm=await idb.countBy('rec2','proj',p.id)}}catch(e){}
+    const el=document.getElementById('pjs-'+p.id);
+    if(el)el.textContent=`${p.hasLayer?p.count.toLocaleString()+'곳':'조사점 없음'} · 사진·그림 ${ph} · 메모 ${mm} · ${fmtDate(p.updated)}`}}
+function nameDialog(title,val,act,id){
+  openModal(`<div class="dlg"><h2>${title}</h2>
+  <div class="field"><label for="pjName">업무 이름</label><input id="pjName" type="text" maxlength="40" value="${esc(val)}" autocomplete="off"></div>
+  <div class="row"><button class="btn" data-act="projects">취소</button><button class="btn ok" data-act="${act}" data-id="${id||''}">확인</button></div></div>`);
+  setTimeout(()=>{const i=$('#pjName');if(i){i.focus();i.select()}},50)}
+async function switchTo(id){
+  await loadProject(id);closeModal();refreshAll();setTab('map');fit();
+  const m=curMeta();toast(`'${m?m.name:'업무'}' 업무를 열었습니다`)}
+
 /* ================= 내 위치 ================= */
 function locate(){
   if(!navigator.geolocation){toast('이 기기에서는 위치를 쓸 수 없습니다');return}
@@ -929,6 +1005,23 @@ document.addEventListener('click',async e=>{
     case 'zout':zoomAt(M.w/2,M.h/2,M.z-1);break;
     case 'fit':fit();break;
     case 'locate':locate();break;
+    case 'projects':openProjects();break;
+    case 'pjOpen':{if(b.dataset.id===S.cur){closeModal();break}if(S.volatile){toast('이 브라우저에서는 저장이 안 되어 업무를 바꿀 수 없습니다');break}await switchTo(b.dataset.id);break}
+    case 'pjNew':{if(S.volatile){toast('이 브라우저에서는 저장이 안 되어 업무를 하나만 쓸 수 있습니다');break}nameDialog('새 업무 만들기','업무 '+(S.projs.length+1),'pjCreate');break}
+    case 'pjCreate':{const nm=($('#pjName').value||'').trim();if(!nm){toast('업무 이름을 입력하세요');break}
+      const m=newProjMeta(nm);S.projs.push(m);await persist(()=>idb.put('proj',m));await loadProject(m.id);closeModal();refreshAll();setTab('map');toast('새 업무를 만들었습니다. "조사점 불러오기"로 shp를 불러오세요',3600);break}
+    case 'pjRename':{const m=S.projs.find(p=>p.id===b.dataset.id);if(m)nameDialog('업무 이름 바꾸기',m.name,'pjRenameOk',m.id);break}
+    case 'pjRenameOk':{const m=S.projs.find(p=>p.id===b.dataset.id),nm=($('#pjName').value||'').trim();if(!m||!nm){toast('업무 이름을 입력하세요');break}
+      m.name=nm;await persist(()=>idb.put('proj',m));renderHeader();openProjects();break}
+    case 'pjDel':{
+      if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='삭제 확인';setTimeout(()=>{if(b.isConnected){b.dataset.armed='';b.textContent='삭제'}},3500);break}
+      if(S.volatile){toast('이 브라우저에서는 삭제할 수 없습니다');break}
+      const id=b.dataset.id;
+      await persist(async()=>{await idb.delBy('rec2','proj',id);await idb.delBy('media','proj',id);await idb.del('kv','layer:'+id);await idb.del('proj',id)});
+      S.projs=S.projs.filter(p=>p.id!==id);
+      if(id===S.cur){if(!S.projs.length){const m=newProjMeta('업무 1');S.projs.push(m);await persist(()=>idb.put('proj',m))}
+        await loadProject([...S.projs].sort((a,b2)=>(b2.updated||0)-(a.updated||0))[0].id);refreshAll();fit()}
+      renderProjects();toast('업무를 삭제했습니다');break}
     case 'layers':openLayers();break;
     case 'pickLay':$('#layIn').click();break;
     case 'layGo':layGo(b);break;
@@ -964,6 +1057,7 @@ document.addEventListener('click',async e=>{
     case 'openExport':openExport();break;
     case 'expGo':expGo();break;
     case 'expWipe':expWipe(b);break}});
+$('.ttl').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openProjects()}});
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal'&&!DR&&!VW)closeModal()});
 
 /* ================= 시작 ================= */
@@ -975,16 +1069,19 @@ async function boot(){
   new MutationObserver(readColors).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
   new ResizeObserver(()=>resize()).observe($('#mapView'));
   try{
-    const layer=await idb.get('kv','layer');
-    if(layer){S.layer=prep(layer);
-      (await idb.all('rec')).forEach(r=>S.recs.set(r.pid,r));
-      S.layers=(await idb.all('layers')).sort((a,b)=>a.added-b.added);
-      (await idb.all('media')).forEach(m=>{if(!S.media.has(m.pid))S.media.set(m.pid,[]);S.media.get(m.pid).push(m)})}
-  }catch(e){S.volatile=true;$('#vol').hidden=false}
-  if(!S.layer){S.layer=sampleLayer();await persist(()=>idb.put('kv',S.layer,'layer'))}
+    await migrateLegacy();
+    S.projs=await idb.all('proj');
+    S.layers=(await idb.all('layers')).sort((x,y)=>x.added-y.added);
+    if(!S.projs.length){const m=newProjMeta('예시 업무'),l=sampleLayer();m.hasLayer=true;m.count=l.features.length;m.sample=true;
+      await idb.put('proj',m);await idb.put('kv',l,'layer:'+m.id);S.projs=[m]}
+    let cur=await idb.get('kv','cur');if(!S.projs.some(p=>p.id===cur))cur=S.projs[0].id;
+    await loadProject(cur);
+  }catch(e){
+    S.volatile=true;$('#vol').hidden=false;
+    const m=newProjMeta('예시 업무');S.projs=[m];S.cur=m.id;S.layer=sampleLayer();m.hasLayer=true;m.count=S.layer.features.length;m.sample=true}
   resize();fit();refreshAll();
-  if(S.layer.sample)toast('예시 데이터입니다. 위의 "shp 불러오기"로 실제 파일을 올리세요.',4200)}
-window.__t={pickLine,parseLines,convertLayer,BASES,syncCad,parseShp,parseDbf,tmForward,tmInverse,CRS,S,M,openDraw,toLngLat};
+  if(S.layer&&S.layer.sample)toast('예시 업무입니다. 위의 "조사점 불러오기"로 실제 파일을 올리세요.',4200)}
+window.__t={loadProject,curMeta,pickLine,parseLines,convertLayer,BASES,syncCad,parseShp,parseDbf,tmForward,tmInverse,CRS,S,M,openDraw,toLngLat};
 boot();
 </script>
 
