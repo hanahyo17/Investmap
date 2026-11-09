@@ -46,11 +46,14 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 .stage{flex:1;position:relative;min-height:0}
 #mapView,#listView{position:absolute;inset:0}
 #map{display:block;width:100%;height:100%;touch-action:none;background:var(--canvas)}
-.ctl{position:absolute;right:max(10px,env(safe-area-inset-right,0px));top:10px;display:flex;flex-direction:column;gap:4px;z-index:3}
+.ctl{position:absolute;right:max(10px,env(safe-area-inset-right,0px));top:10px;display:grid;grid-template-columns:48px 48px;gap:4px;z-index:3}
 .ctl button{width:48px;min-height:40px;border-radius:8px;border:1px solid var(--line);background:var(--surface);box-shadow:0 1px 6px rgba(0,0,0,.18);font-size:12px;font-weight:700;padding:0}
+.ctl button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:transparent}
 .ctl button.big{font-size:22px;line-height:1;font-weight:500}
-#tileNote{position:absolute;left:max(10px,env(safe-area-inset-left,0px));top:10px;max-width:calc(100% - 90px);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12.5px;color:var(--muted);z-index:3}
+#tileNote,#cadNote{position:absolute;left:max(10px,env(safe-area-inset-left,0px));top:10px;max-width:calc(100% - 150px);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12.5px;color:var(--muted);z-index:3}
 #tileNote[hidden]{display:none}
+#cadNote{top:58px}
+#cadNote button{margin-left:6px}
 #vol{background:var(--accent-soft);color:var(--ink);font-size:13px;padding:6px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line)}
 
 #listView{display:flex;flex-direction:column;background:var(--bg)}
@@ -96,6 +99,20 @@ button{cursor:pointer;-webkit-tap-highlight-color:transparent}
 textarea#memo{width:100%;min-height:96px;resize:vertical;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:10px 12px;line-height:1.5}
 .saved{font-size:12px;color:var(--muted);min-height:18px;margin-top:4px}
 
+#info{position:absolute;left:0;right:0;bottom:0;max-height:44%;overflow:auto;background:var(--surface);border-radius:14px 14px 0 0;box-shadow:0 -4px 18px rgba(0,0,0,.22);padding:10px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px));z-index:5;overscroll-behavior:contain}
+#info .ih{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#info h3{margin:0;font-size:15px}
+#info .lay{font-size:12px;color:var(--muted)}
+#info table{width:100%;border-collapse:collapse;margin-top:6px;font-size:13.5px}
+#info td{border-bottom:1px solid var(--line);padding:5px 4px;vertical-align:top;overflow-wrap:anywhere}
+#info td:first-child{color:var(--muted);width:34%}
+.laylist{list-style:none;margin:8px 0;padding:0}
+.laylist li{display:flex;align-items:center;gap:8px;min-height:48px;border-bottom:1px solid var(--line)}
+.laylist label{flex:1;min-width:0;display:flex;align-items:center;gap:10px;overflow-wrap:anywhere}
+.laylist input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent);flex:none}
+.laylist input[type=color]{width:36px;height:36px;border:1px solid var(--line);border-radius:8px;padding:2px;background:var(--surface);flex:none}
+.laylist small{color:var(--muted)}
+.field input[type=text]{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:0 10px}
 #modal{position:fixed;inset:0;z-index:50;background:rgba(10,14,12,.55);display:flex;align-items:flex-end;justify-content:center;overscroll-behavior:contain}
 #modal[hidden]{display:none}
 .dlg{background:var(--surface);width:100%;max-width:560px;max-height:92%;overflow:auto;border-radius:14px 14px 0 0;padding:16px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
@@ -104,7 +121,7 @@ textarea#memo{width:100%;min-height:96px;resize:vertical;border:1px solid var(--
 .dlg p{margin:6px 0}
 .field{display:grid;gap:4px;margin:10px 0}
 .field label{font-size:13px;font-weight:700}
-.field select{min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:0 8px;width:100%}
+.field select,.field input{min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--bg);padding:0 8px;width:100%}
 .row{display:flex;gap:8px;margin-top:14px}
 .row .btn{flex:1}
 .warn{color:var(--warn);font-size:13px}
@@ -146,7 +163,7 @@ textarea#memo{width:100%;min-height:96px;resize:vertical;border:1px solid var(--
   <header class="top">
     <div class="ttl"><h1>현장조사 노트</h1><p id="sub"></p></div>
     <div class="acts">
-      <button class="btn sm" data-act="openImport" id="btnImport">shp 불러오기</button>
+      <button class="btn sm" data-act="openImport" id="btnImport">조사점 불러오기</button>
       <button class="btn sm pri" data-act="openExport" id="btnExport">내보내기</button>
     </div>
   </header>
@@ -159,15 +176,19 @@ textarea#memo{width:100%;min-height:96px;resize:vertical;border:1px solid var(--
         <button class="big" data-act="zout" aria-label="축소">−</button>
         <button data-act="fit" aria-label="전체 보기">전체</button>
         <button data-act="locate" aria-label="내 위치">내 위치</button>
+        <button data-act="layers" id="btnLay" aria-label="참고 레이어">레이어</button>
+        <button data-act="cad" id="btnCad" aria-pressed="false" aria-label="연속지적도 켜기/끄기">지적</button>
         <button data-act="basemap" id="btnBase" aria-label="배경지도 바꾸기">위성</button>
       </div>
       <div id="tileNote" hidden>배경지도를 불러오지 못해 점 위치만 표시합니다.</div>
+      <div id="cadNote" hidden>지적도를 불러오지 못했습니다. 인증키와 서비스 URL 등록을 확인하세요.<button class="btn sm" data-act="openKey">키 설정</button></div>
     </section>
     <section id="listView" hidden>
       <div class="search"><input id="q" type="search" placeholder="장소명·주소 검색" autocomplete="off"></div>
       <ul id="list"></ul>
     </section>
     <aside id="sheet" hidden></aside>
+    <aside id="info" hidden></aside>
   </div>
   <nav class="tabs" role="tablist">
     <button role="tab" data-act="tab" data-tab="map" aria-selected="true">지도</button>
@@ -179,6 +200,7 @@ textarea#memo{width:100%;min-height:96px;resize:vertical;border:1px solid var(--
 <input type="file" id="camIn" accept="image/*" capture="environment" hidden>
 <input type="file" id="galIn" accept="image/*" multiple hidden>
 <input type="file" id="shpIn" multiple hidden>
+<input type="file" id="layIn" multiple hidden>
 
 <script>
 /*!
@@ -302,8 +324,10 @@ async function gatherFiles(fileList){
 const idb=(()=>{
   let p=null;
   const open=()=>p||(p=new Promise((res,rej)=>{try{
-    const r=indexedDB.open('field-note',1);
-    r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('kv');d.createObjectStore('rec',{keyPath:'pid'});d.createObjectStore('media',{keyPath:'id'})};
+    const r=indexedDB.open('field-note',2);
+    r.onupgradeneeded=()=>{const d=r.result,has=n=>d.objectStoreNames.contains(n);
+      if(!has('kv'))d.createObjectStore('kv');if(!has('rec'))d.createObjectStore('rec',{keyPath:'pid'});
+      if(!has('media'))d.createObjectStore('media',{keyPath:'id'});if(!has('layers'))d.createObjectStore('layers',{keyPath:'id'})};
     r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);r.onblocked=()=>rej(new Error('blocked'))}catch(e){rej(e)}}));
   const wrap=q=>new Promise((res,rej)=>{q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)});
   const tx=async(s,m,fn)=>{const d=await open();return wrap(fn(d.transaction(s,m).objectStore(s)))};
@@ -318,7 +342,7 @@ async function persist(fn){
   try{await fn()}catch(e){S.volatile=true;$('#vol').hidden=false;toast('저장 공간을 쓸 수 없습니다. 지금 ZIP으로 내보내 주세요',4200)}}
 
 /* ================= 상태 ================= */
-const S={layer:null,recs:new Map(),media:new Map(),urls:new Map(),sel:null,tab:'map',loc:null,watch:0,base:'osm',volatile:false,q:''};
+const S={layer:null,recs:new Map(),media:new Map(),urls:new Map(),sel:null,tab:'map',loc:null,watch:0,base:'osm',volatile:false,q:'',vkey:'',cad:false,layers:[],pick:null};
 function prep(layer){layer.features.forEach(f=>{f.wx=(f.lng+180)/360;const s=Math.sin(f.lat*Math.PI/180);f.wy=0.5-Math.log((1+s)/(1-s))/(4*Math.PI)});return layer}
 function featureOf(i){return S.layer&&S.layer.features.find(f=>f.i===i)}
 const mediaOf=(pid,kind)=>(S.media.get(pid)||[]).filter(m=>!kind||m.kind===kind).sort((a,b)=>a.ts-b.ts);
@@ -339,10 +363,16 @@ function sampleLayer(){
 
 /* ================= 지도 엔진 (캔버스) ================= */
 const cv=$('#map'),cx=cv.getContext('2d');
-const M={cx:.5,cy:.4,z:5,w:0,h:0,dpr:1,tiles:new Map(),errs:0,oks:0,raf:0,col:{}};
+const M={cx:.5,cy:.4,z:5,w:0,h:0,dpr:1,tiles:new Map(),errs:0,oks:0,cOk:0,cErr:0,raf:0,col:{}};
 const BASES={
   osm:{url:(z,x,y)=>`https://tile.openstreetmap.org/${z}/${x}/${y}.png`,attr:'© OpenStreetMap contributors',max:19},
   sat:{url:(z,x,y)=>`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,attr:'Esri, Maxar, Earthstar Geographics',max:18}};
+BASES.cad={max:19,url:(z,x,y)=>{
+  const n=Math.pow(2,z),W=40075016.6856,f=i=>(i/n-.5)*W,g=j=>(.5-j/n)*W;
+  return 'https://api.vworld.kr/req/wms?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=lp_pa_cbnd_bonbun,lp_pa_cbnd_bubun'
+   +'&STYLES=lp_pa_cbnd_bonbun,lp_pa_cbnd_bubun,lp_pa_cbnd_bonbun_line,lp_pa_cbnd_bubun_line&CRS=EPSG:3857'
+   +'&BBOX='+[f(x),g(y+1),f(x+1),g(y)].map(v=>v.toFixed(4)).join(',')+'&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true'
+   +'&KEY='+encodeURIComponent(S.vkey)+'&DOMAIN='+encodeURIComponent(location.hostname)}};
 const SC=()=>256*Math.pow(2,M.z);
 const sx=wx=>(wx-M.cx)*SC()+M.w/2, sy=wy=>(wy-M.cy)*SC()+M.h/2;
 function readColors(){M.col={ok:cssv('--ok'),mark:cssv('--mark'),acc:cssv('--accent'),surf:cssv('--surface'),ink:cssv('--ink'),bg:cssv('--canvas'),gps:cssv('--gps'),font:cssv('--font')};requestDraw()}
@@ -354,8 +384,9 @@ function getTile(b,z,x,y){
   const k=b+'/'+z+'/'+x+'/'+y;let t=M.tiles.get(k);
   if(t)return t;
   t={img:new Image(),ok:false,bad:false};
-  t.img.onload=()=>{t.ok=true;M.oks++;requestDraw();$('#tileNote').hidden=true};
-  t.img.onerror=()=>{t.bad=true;M.errs++;if(M.oks===0&&M.errs>=4)$('#tileNote').hidden=false};
+  const cad=b==='cad';
+  t.img.onload=()=>{t.ok=true;if(cad){M.cOk++;$('#cadNote').hidden=true}else{M.oks++;$('#tileNote').hidden=true}requestDraw()};
+  t.img.onerror=()=>{t.bad=true;if(cad){M.cErr++;if(M.cOk===0&&M.cErr>=4)$('#cadNote').hidden=false}else{M.errs++;if(M.oks===0&&M.errs>=4)$('#tileNote').hidden=false}};
   t.img.src=BASES[b].url(z,x,y);
   M.tiles.set(k,t);
   if(M.tiles.size>500){const it=M.tiles.keys();for(let i=0;i<100;i++)M.tiles.delete(it.next().value)}
@@ -374,7 +405,12 @@ function draw(){
   if((x1-x0+1)*(y1-y0+1)<=80){
     for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++){
       const t=getTile(S.base,tz,((tx%n)+n)%n,ty);
-      if(t.ok)c.drawImage(t.img,sx(tx/n),sy(ty/n),ts+.6,ts+.6)}}
+      if(t.ok)c.drawImage(t.img,sx(tx/n),sy(ty/n),ts+.6,ts+.6)}
+    if(S.cad&&S.vkey&&tz>=14){
+      for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++){
+        const t=getTile('cad',tz,((tx%n)+n)%n,ty);
+        if(t.ok)c.drawImage(t.img,sx(tx/n),sy(ty/n),ts+.6,ts+.6)}}}
+  drawLayers(c);
   const L=S.layer;
   if(L){
     const showLabel=M.z>=16||L.features.length<=30;
@@ -399,6 +435,8 @@ function draw(){
   if(sc){const bx=12,by=h-26;c.lineWidth=4;c.strokeStyle=M.col.surf;c.beginPath();c.moveTo(bx,by);c.lineTo(bx+sc.px,by);c.stroke();
     c.lineWidth=2;c.strokeStyle=M.col.ink;c.beginPath();c.moveTo(bx,by-4);c.lineTo(bx,by);c.lineTo(bx+sc.px,by);c.lineTo(bx+sc.px,by-4);c.stroke();
     const lab=sc.m>=1000?(sc.m/1000)+' km':sc.m+' m';c.lineWidth=3;c.strokeStyle=M.col.surf;c.strokeText(lab,bx,by-8);c.fillStyle=M.col.ink;c.fillText(lab,bx,by-8)}
+  if(S.cad&&S.vkey&&tz<14){c.font='700 12px '+(M.col.font||'sans-serif');c.textAlign='center';c.lineWidth=3.5;c.strokeStyle=M.col.surf;c.strokeText('지적도는 더 확대하면 보입니다',w/2-24,24);c.fillStyle=M.col.ink;c.fillText('지적도는 더 확대하면 보입니다',w/2-24,24);c.textAlign='left';c.font='500 11px '+(M.col.font||'sans-serif')}
+  if(S.cad&&S.vkey&&M.cOk>0){c.textAlign='right';c.lineWidth=3;c.strokeStyle=M.col.surf;c.strokeText('지적: 브이월드',w-8,h-22);c.fillStyle=M.col.ink;c.fillText('지적: 브이월드',w-8,h-22);c.textAlign='left'}
   if(M.oks>0){const at=base.attr;c.textAlign='right';c.lineWidth=3;c.strokeStyle=M.col.surf;c.strokeText(at,w-8,h-8);c.fillStyle=M.col.ink;c.fillText(at,w-8,h-8);c.textAlign='left'}}
 function zoomAt(px,py,nz){
   nz=Math.max(2,Math.min(19,nz));const wx=M.cx+(px-M.w/2)/SC(),wy=M.cy+(py-M.h/2)/SC();
@@ -443,7 +481,8 @@ cv.addEventListener('wheel',e=>{e.preventDefault();const p=rel(e);zoomAt(p.x,p.y
 function hitTest(px,py){
   const L=S.layer;if(!L)return;let best=null,bd=26;
   for(const f of L.features){const d=Math.hypot(sx(f.wx)-px,sy(f.wy)-py);if(d<bd){bd=d;best=f}}
-  if(best)select(best.i,true);else deselect()}
+  if(best){hideInfo();select(best.i,true);return}
+  const pk=pickLine(px,py);if(pk)showInfo(pk.lid,pk.fi);else deselect()}
 
 /* ================= 화면 갱신 ================= */
 function stats(){
@@ -506,10 +545,11 @@ function renderMedia(){
   $('#shDr').innerHTML=dr.map(th).join('')+`<button class="thumb add" data-act="drawNew">${ICON_PLUS}그리기</button>`;
   $('#cPh').textContent=ph.length||'';$('#cDr').textContent=dr.length||''}
 function select(i,center){
+  hideInfo();
   if(S.sel!=null&&S.sel!==i)saveMemoNow();
   S.sel=i;renderSheet();$('#sheet').scrollTop=0;
   const f=featureOf(i);if(f&&center)requestAnimationFrame(()=>centerOn(f,16));requestDraw()}
-function deselect(){saveMemoNow();S.sel=null;$('#sheet').hidden=true;requestDraw()}
+function deselect(){saveMemoNow();S.sel=null;$('#sheet').hidden=true;hideInfo();requestDraw()}
 let memoT=0;
 function saveMemoNow(){
   clearTimeout(memoT);const i=S.sel,ta=$('#memo');if(i==null||!ta)return;
@@ -547,7 +587,7 @@ function findMedia(id){for(const arr of S.media.values()){const m=arr.find(x=>x.
 
 /* ================= 모달 ================= */
 function openModal(html,full){const m=$('#modal');m.innerHTML=html;m.hidden=false;m.style.alignItems=full?'stretch':'';return m}
-function closeModal(){const m=$('#modal');m.hidden=true;m.innerHTML='';IMP=null;DR=null;VW=null}
+function closeModal(){const m=$('#modal');const wasLay=!!LAY||S.lastLayerBox;m.hidden=true;m.innerHTML='';IMP=null;DR=null;VW=null;LAY=null;if(S.lastLayerBox){const b=S.lastLayerBox;S.lastLayerBox=null;zoomToBox(b)}}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#modal').hidden)closeModal()});
 
 /* 사진·그림 보기 */
@@ -609,9 +649,10 @@ function buildFeatures(I){
   return out}
 function openImport(){
   IMP=null;$('#toast').classList.remove('on');
-  openModal(`<div class="dlg"><h2>shp 불러오기</h2>
-  <p class="muted">.shp .dbf .prj 파일을 한꺼번에 선택하거나, 이 파일들을 묶은 ZIP 하나를 선택하세요. 파일은 이 기기의 브라우저 안에서만 읽고 외부로 보내지 않습니다.</p>
+  openModal(`<div class="dlg"><h2>조사점 불러오기</h2>
+  <p class="muted">조사할 장소가 담긴 점 shp입니다. .shp .dbf .prj 파일을 한꺼번에 선택하거나, 이 파일들을 묶은 ZIP 하나를 선택하세요. 파일은 이 기기의 브라우저 안에서만 읽고 외부로 보내지 않습니다.</p>
   <button class="btn pri" style="width:100%" data-act="pickShp">파일 선택</button>
+  <button class="btn sm" style="margin-top:8px" data-act="openKey">지적도 인증키 설정</button>
   <div id="impBody"></div>
   <div class="row"><button class="btn" data-act="close">닫기</button><button class="btn ok" id="impGo" data-act="impGo" disabled>불러오기</button></div></div>`)}
 async function onShpPicked(files){
@@ -720,6 +761,155 @@ async function expWipe(btn){
   if(!wipeArmed){wipeArmed=true;btn.textContent='정말 지웁니다 (한 번 더 누르세요)';setTimeout(()=>{wipeArmed=false;if(btn.isConnected)btn.textContent='모든 기록 지우기'},4000);return}
   wipeArmed=false;await wipeAll();closeModal();refreshAll();toast('기록을 모두 지웠습니다')}
 
+/* ================= 참고 레이어 (선·면 shp) ================= */
+const LCOL=['#e5251b','#1d5fe0','#8a3ffc','#00897b','#f57c00','#c2185b'];
+function parseLines(buf){
+  const dv=new DataView(buf),len=buf.byteLength;
+  if(len<100||dv.getInt32(0,false)!==9994)throw new Error('올바른 .shp 파일이 아닙니다');
+  const type=dv.getInt32(32,true);
+  if(![3,13,23,5,15,25].includes(type))throw new Error([1,11,21,8,18,28].includes(type)?'점 shp입니다. 점은 위쪽의 "조사점 불러오기"로 불러오세요.':'지원하지 않는 shp 형식입니다. 선 또는 면 shp만 가능합니다.');
+  let p=100,nF=0,P=0,N=0;const recs=[];
+  while(p+8<=len){const cl=dv.getInt32(p+4,false)*2,s=p+8;if(cl<4||s+cl>len)break;
+    const t=dv.getInt32(s,true);
+    if(t===0||cl<44)recs.push(null);else{const np=dv.getInt32(s+36,true),pt=dv.getInt32(s+40,true);recs.push([s,np,pt]);P+=np;N+=pt}
+    nF++;p=s+cl}
+  if(N>2500000)throw new Error('꼭짓점이 너무 많습니다(약 '+Math.round(N/10000)+'만 개). QGIS에서 조사 지역만 잘라내거나 단순화(Simplify)한 뒤 올려 주세요.');
+  const fp=new Int32Array(nF+1),ps=new Int32Array(P+1),raw=new Float64Array(2*N);let pi=0,ni=0;
+  recs.forEach((r,i)=>{fp[i]=pi;if(r){const [s,np,pt]=r,po=s+44,xo=po+4*np;
+    for(let k=0;k<np;k++)ps[pi+k]=ni+dv.getInt32(po+4*k,true);
+    for(let k=0;k<pt;k++){raw[2*(ni+k)]=dv.getFloat64(xo+16*k,true);raw[2*(ni+k)+1]=dv.getFloat64(xo+16*k+8,true)}
+    pi+=np;ni+=pt}});
+  fp[nF]=pi;ps[pi]=ni;
+  return {type,nF,fp,ps,raw,nPts:N}}
+function convertLayer(pr,rows,epsg){
+  const {nF,fp,ps,raw,nPts}=pr,c=CRS[epsg],xy=new Float64Array(2*nPts),fb=new Float64Array(4*nF),alive=new Uint8Array(nF),R=Math.PI/180;
+  for(let i=0;i<nF;i++){
+    const a=ps[fp[i]],b=ps[fp[i+1]];if((rows&&rows[i]===null)||b<=a)continue;
+    let mnx=9,mny=9,mxx=-9,mxy=-9,bad=false;
+    for(let k=a;k<b;k++){
+      let lng=raw[2*k],lat=raw[2*k+1];if(!c.geo){const q=tmInverse(lng,lat,c);lng=q[0];lat=q[1]}
+      const sn=Math.sin(lat*R),wx=(lng+180)/360,wy=.5-Math.log((1+sn)/(1-sn))/(4*Math.PI);
+      if(!isFinite(wx)||!isFinite(wy)){bad=true;break}
+      xy[2*k]=wx;xy[2*k+1]=wy;if(wx<mnx)mnx=wx;if(wx>mxx)mxx=wx;if(wy<mny)mny=wy;if(wy>mxy)mxy=wy}
+    if(bad)continue;
+    fb[4*i]=mnx;fb[4*i+1]=mny;fb[4*i+2]=mxx;fb[4*i+3]=mxy;alive[i]=1}
+  return {xy,fb,alive}}
+function drawLayers(c){
+  if(!S.layers.length)return;
+  const w=M.w,h=M.h,z=SC(),minx=M.cx-w/2/z,maxx=M.cx+w/2/z,miny=M.cy-h/2/z,maxy=M.cy+h/2/z;
+  c.lineJoin='round';c.lineCap='round';let skipped=null;
+  for(const L of S.layers){
+    if(!L.visible)continue;
+    const vis=[],fb=L.fbbox;
+    for(let i=0;i<L.nF;i++){if(!L.alive[i])continue;const b=4*i;if(fb[b+2]<minx||fb[b]>maxx||fb[b+3]<miny||fb[b+1]>maxy)continue;vis.push(i)}
+    if(vis.length>40000&&M.z<14){skipped=L.name;continue}
+    const trace=idx=>{for(const i of idx){
+      for(let q=L.fp[i];q<L.fp[i+1];q++){
+        const a=L.ps[q],b=L.ps[q+1];let lx=(L.xy[2*a]-M.cx)*z+w/2,ly=(L.xy[2*a+1]-M.cy)*z+h/2;c.moveTo(lx,ly);
+        for(let k=a+1;k<b;k++){const x=(L.xy[2*k]-M.cx)*z+w/2,y=(L.xy[2*k+1]-M.cy)*z+h/2;
+          if(k<b-1&&Math.abs(x-lx)+Math.abs(y-ly)<1.5)continue;c.lineTo(x,y);lx=x;ly=y}}}};
+    if(vis.length<8000){c.beginPath();trace(vis);c.globalAlpha=.75;c.lineWidth=4.5;c.strokeStyle=M.col.surf;c.stroke();c.globalAlpha=1}
+    c.beginPath();trace(vis);c.lineWidth=2.2;c.strokeStyle=L.color;c.stroke();
+    if(S.pick&&S.pick.lid===L.id&&L.alive[S.pick.fi]){c.beginPath();trace([S.pick.fi]);c.lineWidth=6;c.strokeStyle=M.col.acc;c.stroke();c.lineWidth=2.4;c.strokeStyle=M.col.surf;c.stroke()}}
+  if(skipped){const t='\''+skipped+'\' 레이어는 더 확대하면 보입니다';c.font='700 12px '+(M.col.font||'sans-serif');c.textAlign='center';c.textBaseline='middle';c.lineWidth=3.5;c.strokeStyle=M.col.surf;c.strokeText(t,w/2-24,46);c.fillStyle=M.col.ink;c.fillText(t,w/2-24,46);c.textAlign='left'}}
+function pickLine(px,py){
+  const z=SC(),tol=18/z,wx=M.cx+(px-M.w/2)/z,wy=M.cy+(py-M.h/2)/z;let best=null,bd=18;
+  for(const L of S.layers){
+    if(!L.visible)continue;const fb=L.fbbox;
+    for(let i=0;i<L.nF;i++){
+      if(!L.alive[i])continue;const b=4*i;
+      if(wx<fb[b]-tol||wx>fb[b+2]+tol||wy<fb[b+1]-tol||wy>fb[b+3]+tol)continue;
+      for(let q=L.fp[i];q<L.fp[i+1];q++){
+        for(let k=L.ps[q];k<L.ps[q+1]-1;k++){
+          const ax=(L.xy[2*k]-M.cx)*z+M.w/2,ay=(L.xy[2*k+1]-M.cy)*z+M.h/2,bx=(L.xy[2*k+2]-M.cx)*z+M.w/2,by=(L.xy[2*k+3]-M.cy)*z+M.h/2;
+          const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;let t=l2?((px-ax)*dx+(py-ay)*dy)/l2:0;t=Math.max(0,Math.min(1,t));
+          const d=Math.hypot(px-(ax+t*dx),py-(ay+t*dy));if(d<bd){bd=d;best={lid:L.id,fi:i}}}}}}
+  return best}
+function showInfo(lid,fi){
+  const L=S.layers.find(l=>l.id===lid);if(!L)return;
+  if(S.sel!=null){saveMemoNow();S.sel=null;$('#sheet').hidden=true}
+  S.pick={lid,fi};const row=L.attrs&&L.attrs[fi]||[];
+  const rows=L.fields.map((f,k)=>[f,row[k]]).filter(r=>r[1]!==''&&r[1]!=null).slice(0,16);
+  const el=$('#info');el.hidden=false;
+  el.innerHTML=`<div class="ih"><div><h3>${esc(L.name)} · No. ${fi+1}</h3><div class="lay">${L.kind==='line'?'선':'면'} 레이어</div></div><button class="btn sm" data-act="infoClose">닫기</button></div>
+  ${rows.length?'<table>'+rows.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join('')+'</table>':'<p class="muted">속성 정보가 없습니다.</p>'}`;
+  requestDraw()}
+function hideInfo(){S.pick=null;const el=$('#info');if(el)el.hidden=true}
+let LAY=null;
+function openLayers(){
+  LAY=null;
+  openModal(`<div class="dlg"><h2>참고 레이어</h2>
+  <p class="muted">선·면 shp를 지도 위에 겹쳐 봅니다. 사진·메모는 조사점에만 남깁니다. 지도에서 선을 누르면 속성이 보입니다.</p>
+  <ul class="laylist" id="layList"></ul>
+  <button class="btn pri" style="width:100%" data-act="pickLay">레이어 추가 (선·면 shp)</button>
+  <div id="layBody"></div>
+  <div class="row"><button class="btn" data-act="close">닫기</button><button class="btn ok" id="layGo" data-act="layGo" hidden>이 설정으로 추가</button></div></div>`);
+  renderLayList()}
+function renderLayList(){
+  const ul=$('#layList');if(!ul)return;
+  ul.innerHTML=S.layers.length?S.layers.map(L=>`<li><label><input type="checkbox" data-lay="${L.id}" ${L.visible?'checked':''}><span>${esc(L.name)} <small>${L.kind==='line'?'선':'면'} ${L.nF.toLocaleString()}개</small></span></label><input type="color" data-laycol="${L.id}" value="${L.color}" aria-label="색상"><button class="btn sm" data-act="layZoom" data-id="${L.id}">이동</button><button class="btn sm danger" data-act="layDel" data-id="${L.id}">삭제</button></li>`).join(''):'<li class="muted" style="min-height:40px">추가한 레이어가 없습니다.</li>'}
+async function onLayerPicked(files){
+  const body=$('#layBody');if(!body)return;body.innerHTML='<p class="muted">읽는 중…</p>';$('#layGo').hidden=true;
+  await new Promise(r=>setTimeout(r,30));
+  try{
+    const g=await gatherFiles(files),pr=parseLines(g.shp);
+    LAY={g,pr,enc:'auto',epsg:guessCrs(g.prj),name:g.name,color:LCOL[S.layers.length%LCOL.length],noPrj:!g.prj};
+    layReparse();renderLayAdd()
+  }catch(e){LAY=null;body.innerHTML=`<p class="err">${esc(e.message||e)}</p>`}}
+function layReparse(){const I=LAY;I.dbf=I.g.dbf?parseDbf(I.g.dbf,I.enc,encFromCpg(I.g.cpg)):{fields:[],rows:[],enc:''}}
+function renderLayAdd(){
+  const I=LAY,body=$('#layBody');if(!I||!body)return;
+  const c=CRS[I.epsg];let fx=null;
+  for(let k=0;k<I.pr.nPts;k++){fx=[I.pr.raw[2*k],I.pr.raw[2*k+1]];break}
+  const ll=fx?toLngLat(fx[0],fx[1],I.epsg):null;
+  const outside=ll&&!(ll[1]>32.5&&ll[1]<39.5&&ll[0]>123.5&&ll[0]<132.5);
+  body.innerHTML=`<p class="ok-t">${esc(I.g.name)} · ${I.pr.type%10===3?'선':'면'} ${I.pr.nF.toLocaleString()}개 · 꼭짓점 ${I.pr.nPts.toLocaleString()}개${I.dbf.enc?' · 문자 '+(I.dbf.enc==='euc-kr'?'CP949(한글)':'UTF-8'):''}</p>
+  ${I.g.dbf?'':'<p class="warn">.dbf가 없어 속성은 표시되지 않습니다.</p>'}${I.noPrj?'<p class="warn">.prj가 없어 좌표계를 직접 확인해야 합니다.</p>':''}
+  <div class="field"><label for="layName">레이어 이름</label><input id="layName" type="text" value="${esc(I.name)}"></div>
+  <div class="field"><label for="layCrs">좌표계</label><select id="layCrs">${[5186,5185,5187,5188,5179,4326].map(k=>`<option value="${k}" ${k===I.epsg?'selected':''}>${CRS[k].label}</option>`).join('')}</select></div>
+  <div class="field"><label for="layEnc">글자가 깨져 보이면</label><select id="layEnc"><option value="auto" ${I.enc==='auto'?'selected':''}>자동 판별</option><option value="euc-kr" ${I.enc==='euc-kr'?'selected':''}>CP949 (한글 윈도우 기본)</option><option value="utf-8" ${I.enc==='utf-8'?'selected':''}>UTF-8</option></select></div>
+  ${ll?`<p class="mono muted" style="font-size:12px">첫 꼭짓점 → 위도 ${ll[1].toFixed(5)}, 경도 ${ll[0].toFixed(5)}</p>`:''}
+  ${outside?'<p class="err">변환한 위치가 한국 범위를 벗어났습니다. 좌표계를 다시 확인하세요.</p>':''}`;
+  $('#layGo').hidden=false;
+  $('#layName').oninput=e=>{I.name=e.target.value};
+  $('#layCrs').onchange=e=>{I.epsg=+e.target.value;renderLayAdd()};
+  $('#layEnc').onchange=e=>{I.enc=e.target.value;layReparse();renderLayAdd()}}
+async function layGo(btn){
+  const I=LAY;if(!I)return;btn.disabled=true;btn.textContent='변환하는 중…';
+  await new Promise(r=>setTimeout(r,30));
+  try{
+    const fields=I.dbf.fields,rows=I.g.dbf?I.dbf.rows:null,cv_=convertLayer(I.pr,rows,I.epsg);
+    let alive=0;for(let i=0;i<I.pr.nF;i++)alive+=cv_.alive[i];
+    if(!alive)throw new Error('표시할 수 있는 도형이 없습니다. 좌표계를 확인하세요.');
+    const L={id:uid(),name:(I.name||I.g.name).trim()||I.g.name,kind:I.pr.type%10===3?'line':'poly',epsg:I.epsg,color:I.color,visible:true,
+      fields,attrs:rows?rows.map(r=>r?fields.map(f=>r[f]):null):null,nF:I.pr.nF,nPts:I.pr.nPts,fp:I.pr.fp,ps:I.pr.ps,xy:cv_.xy,fbbox:cv_.fb,alive:cv_.alive,added:Date.now()};
+    S.layers.push(L);await persist(()=>idb.put('layers',L));
+    LAY=null;$('#layBody').innerHTML='';btn.hidden=true;renderLayList();requestDraw();
+    toast(`${L.name} 레이어를 추가했습니다`,1500);
+    S.lastLayerBox=layerBox(L);
+  }catch(e){$('#layBody').insertAdjacentHTML('beforeend',`<p class="err">${esc(e.message||e)}</p>`)}
+  btn.disabled=false;btn.textContent='이 설정으로 추가'}
+function zoomToBox(b){
+  if(!b||!M.w)return;M.cx=(b[0]+b[2])/2;M.cy=(b[1]+b[3])/2;
+  const need=Math.min((M.w*.85)/Math.max(b[2]-b[0],1e-9),(M.h*.6)/Math.max(b[3]-b[1],1e-9));M.z=Math.max(15,Math.min(18,Math.log2(need/256)));requestDraw()}
+function layerBox(L){let a=9,b=-9,c=9,d=-9;const fb=L.fbbox;for(let i=0;i<L.nF;i++){if(!L.alive[i])continue;a=Math.min(a,fb[4*i]);c=Math.min(c,fb[4*i+1]);b=Math.max(b,fb[4*i+2]);d=Math.max(d,fb[4*i+3])}return [a,c,b,d]}
+$('#layIn').addEventListener('change',e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)onLayerPicked(fs)});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset&&t.dataset.lay){const L=S.layers.find(l=>l.id===t.dataset.lay);if(L){L.visible=t.checked;persist(()=>idb.put('layers',L));if(!L.visible&&S.pick&&S.pick.lid===L.id)hideInfo();requestDraw()}}
+  if(t.dataset&&t.dataset.laycol){const L=S.layers.find(l=>l.id===t.dataset.laycol);if(L){L.color=t.value;persist(()=>idb.put('layers',L));requestDraw()}}});
+
+/* ================= 연속지적도 (브이월드 WMS) ================= */
+function resetCad(){[...M.tiles.keys()].forEach(k=>{if(k.startsWith('cad/'))M.tiles.delete(k)});M.cOk=0;M.cErr=0;$('#cadNote').hidden=true}
+function syncCad(){$('#btnCad').setAttribute('aria-pressed',String(!!(S.cad&&S.vkey)));if(!S.cad)$('#cadNote').hidden=true;requestDraw()}
+function openKey(){
+  openModal(`<div class="dlg"><h2>지적도 인증키</h2>
+  <p class="muted">브이월드(vworld.kr)에서 발급받은 인증키를 붙여 넣으세요. 키는 이 폰의 브라우저에만 저장됩니다.</p>
+  <div class="field"><label for="keyIn">인증키</label><input id="keyIn" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(S.vkey)}" placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"></div>
+  <p class="muted" style="font-size:12.5px">키를 신청할 때 등록한 서비스 URL이 이 앱의 주소와 맞아야 합니다. 이 앱의 주소: <b class="mono">${esc(location.origin)}</b></p>
+  <div class="row"><button class="btn" data-act="close">닫기</button><button class="btn ok" data-act="keySave">저장하고 켜기</button></div>
+  ${S.vkey?'<div class="row"><button class="btn danger" data-act="keyClear">키 삭제</button></div>':''}</div>`)}
+
 /* ================= 내 위치 ================= */
 function locate(){
   if(!navigator.geolocation){toast('이 기기에서는 위치를 쓸 수 없습니다');return}
@@ -739,6 +929,18 @@ document.addEventListener('click',async e=>{
     case 'zout':zoomAt(M.w/2,M.h/2,M.z-1);break;
     case 'fit':fit();break;
     case 'locate':locate();break;
+    case 'layers':openLayers();break;
+    case 'pickLay':$('#layIn').click();break;
+    case 'layGo':layGo(b);break;
+    case 'layZoom':{const L=S.layers.find(l=>l.id===b.dataset.id);if(L){const bx=layerBox(L);closeModal();zoomToBox(bx);toast('레이어 위치로 이동했습니다. 필지가 안 보이면 더 확대하세요',2400)}break}
+    case 'layDel':{if(b.dataset.armed!=='1'){b.dataset.armed='1';b.textContent='삭제 확인';setTimeout(()=>{if(b.isConnected){b.dataset.armed='';b.textContent='삭제'}},3500);break}
+      const id=b.dataset.id;S.layers=S.layers.filter(l=>l.id!==id);if(S.pick&&S.pick.lid===id)hideInfo();persist(()=>idb.del('layers',id));renderLayList();requestDraw();break}
+    case 'infoClose':hideInfo();requestDraw();break;
+    case 'cad':if(!S.vkey){openKey();break}S.cad=!S.cad;syncCad();toast(S.cad?'지적도를 켰습니다. 지도를 확대하면 필지 경계가 보입니다':'지적도를 껐습니다');break;
+    case 'openKey':openKey();break;
+    case 'keySave':{const v=($('#keyIn').value||'').trim();if(!v){toast('인증키를 입력하세요');break}
+      S.vkey=v;S.cad=true;resetCad();try{localStorage.setItem('fn_vkey',v)}catch(err){}closeModal();syncCad();toast('지적도를 켰습니다. 지도를 확대하면 필지 경계가 보입니다');break}
+    case 'keyClear':S.vkey='';S.cad=false;resetCad();try{localStorage.removeItem('fn_vkey')}catch(err){}closeModal();syncCad();toast('인증키를 삭제했습니다');break;
     case 'basemap':S.base=S.base==='osm'?'sat':'osm';b.textContent=S.base==='osm'?'위성':'지도';requestDraw();break;
     case 'pick':setTab('map');select(+b.dataset.i,true);break;
     case 'deselect':deselect();break;
@@ -767,6 +969,7 @@ $('#modal').addEventListener('click',e=>{if(e.target.id==='modal'&&!DR&&!VW)clos
 /* ================= 시작 ================= */
 async function boot(){
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+  try{S.vkey=localStorage.getItem('fn_vkey')||''}catch(e){}
   readColors();
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change',readColors);
   new MutationObserver(readColors).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
@@ -775,12 +978,13 @@ async function boot(){
     const layer=await idb.get('kv','layer');
     if(layer){S.layer=prep(layer);
       (await idb.all('rec')).forEach(r=>S.recs.set(r.pid,r));
+      S.layers=(await idb.all('layers')).sort((a,b)=>a.added-b.added);
       (await idb.all('media')).forEach(m=>{if(!S.media.has(m.pid))S.media.set(m.pid,[]);S.media.get(m.pid).push(m)})}
   }catch(e){S.volatile=true;$('#vol').hidden=false}
   if(!S.layer){S.layer=sampleLayer();await persist(()=>idb.put('kv',S.layer,'layer'))}
   resize();fit();refreshAll();
   if(S.layer.sample)toast('예시 데이터입니다. 위의 "shp 불러오기"로 실제 파일을 올리세요.',4200)}
-window.__t={parseShp,parseDbf,tmForward,tmInverse,CRS,S,M,openDraw,toLngLat};
+window.__t={pickLine,parseLines,convertLayer,BASES,syncCad,parseShp,parseDbf,tmForward,tmInverse,CRS,S,M,openDraw,toLngLat};
 boot();
 </script>
 

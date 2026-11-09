@@ -1,5 +1,5 @@
 /* 현장조사 노트 서비스 워커: 앱 파일을 폰에 저장해 인터넷 없이도 열리게 한다. */
-const V = 'field-note-v1';
+const V = 'field-note-v3';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
